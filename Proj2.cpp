@@ -182,7 +182,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		ftm.dwHighDateTime, ftm.dwLowDateTime); }
 
 	// дельта, которую надо прибавить к текущему времени
-	printf("\r\nTime offset: %s %f ms \r\n", dLocalClockOffset < 0 ? "-" : "+", dLocalClockOffset);
+	printf("\r\nTime offset: %s %f ms \r\n", dLocalClockOffset < 0 ? "" : "+", dLocalClockOffset);
 	//Задержка на путь от клиента до сервера
 	printf("\r\nRound Trip Delay: %f ms \r\n", dRoundTripDelay);
 	printf("\n");
