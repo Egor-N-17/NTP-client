@@ -4,34 +4,34 @@
 #include "stdafx.h"
 #include <winsock2.h>
 
-const long JAN_1ST_1900 = 2415021;					//Количество дней с 1 января 4712 года до нашей эры до 1 января 1900 года нашей эры
-const double NTP_FRACTIONAL_TO_MS = (((double)1000.0)/0xFFFFFFFF);	//делим количество милисекунд в секунде, на 2^32
+const long JAN_1ST_1900 = 2415021;					//Number of days since 1st january 4712 BC, to 1st junuary 1900 AD
+const double NTP_FRACTIONAL_TO_MS = (((double)1000.0)/0xFFFFFFFF);	//Divide the number of miliseconds in 1 second by 2^32
 
 typedef struct
 {
-	DWORD dwSecond;			//Количество секунд
-	DWORD dwFract;			//Колличество милисекунд
-} NtpTimePacket;			//Структура, которая будет отправляться на сервер
-											//и туда будет записываться данные пришедшие с сервера
+	DWORD dwSecond;			//Number of seconds
+	DWORD dwFract;			//Number of miliseconds
+} NtpTimePacket;			//Structure, that will send to server
+											//and data from server will be receive in structure
 //
 // Calculate Gregorian Date from Julian Day
 //
 void GetGregorianDate(long JD, WORD& Year, WORD& Month, WORD& Day)
 {   
-	long j = JD - 1721119;        //Number of days from 4712 B.C., 1721119 - количество дней от 0 года по Юлианскому календарю(1 января 4712 до нашей эры) до марта 1 марта 1 года нашей Эры
+	long j = JD - 1721119;        //Number of days from 4712 B.C., 1721119 - number of days since 0 year by the Julian calendar(1 junuary 4712 BC) to 1st March 1 year AD
 																//Вычитая это значение, мы получаем сколько дней прошло с марта 1 года. 
 
-	long y = (4 * j - 1) / 146097;//Number of century, 146097 - столько дней в 400 годах Грегорианского календаря, так же тут учитывается високосный год
+	long y = (4 * j - 1) / 146097;//Number of century, 146097 - number of days in 400 years of Gregorian calendar, including leap year
 	j = 4 * j - 1 - 146097 * y;   //Nuber of days*4 in this century
 	long d = j / 4;               //Number of days in this century
-	j = (4 * d + 3) / 1461;       //Nuber of years in this century, 1461 - количество дней в 4 годах по Грегорианскому календарю с учетом високосного года
+	j = (4 * d + 3) / 1461;       //Nuber of years in this century, 1461 - number of days in 4 years of Gregorian calendar, including leap year
 	d = 4 * d + 3 - 1461 * j;
 	d = (d + 4) / 4;
-	long m = (5 * d - 3) / 153;		//153 - Количество дней в 5 месяцах, с 31 днем в каждом
+	long m = (5 * d - 3) / 153;		//153 - Number of days in 5 mounth, 31 day in each
 	d = 5 * d - 3 - 153 * m;
 	d = (d + 5) / 5;              //Date of today
 	y = 100 * y + j;
-	if (m < 10)										//Добавляем 3 или отнимаем 9 что бы восстановить начало года в 1 января
+	if (m < 10)										//Add 3 or subtract 9 to return the start of year in 1 junuary
 		m = m + 3;
 	else
 	{
@@ -46,8 +46,8 @@ void GetGregorianDate(long JD, WORD& Year, WORD& Month, WORD& Day)
 
 WORD NtpFractionToMs(DWORD dwFraction)
 {
-	return (WORD)((((double)dwFraction) * NTP_FRACTIONAL_TO_MS) + 0.5);	//переводим количество милисекунд из NTP
-}																																			// в удобный для System Time вид
+	return (WORD)((((double)dwFraction) * NTP_FRACTIONAL_TO_MS) + 0.5);	//convert number of miliseconds from NTP-format
+}																																			//in a convenient for System Time view
 
 void ConvNtpToSystemTime(NtpTimePacket& ntpTm, SYSTEMTIME& st)
 {
@@ -67,26 +67,26 @@ void ConvNtpToSystemTime(NtpTimePacket& ntpTm, SYSTEMTIME& st)
 int _tmain(int argc, _TCHAR* argv[])
 {
 	WSADATA wsaData = {0};
-	int iErr = WSAStartup(MAKEWORD(2,2), &wsaData);	//Инициализируем использование Winsock DLL 
+	int iErr = WSAStartup(MAKEWORD(2,2), &wsaData);	//Initialize the use of the Winsock DLL 
 	if (iErr != 0 )
 	{
 		printf("Error WSAStartup: %d\r\n", iErr);
 		return 1;
 	}
 
-	char szClientBuf[48]={0};								//Клиентский буфер
-	char szServerBuf[48]={0};								//Серверный буфер, который будет заполнятся, после принятия сообщения
+	char szClientBuf[48]={0};								//Client buffer
+	char szServerBuf[48]={0};								//Server buffer, which will be written, after message will be accepted
 
-	{ // заполняем первый байт
-		int iDeltaLen = 0;                   // позиция дл текущего значения.
-		szClientBuf[0] |= 0x3;               // Индикатор коррекции (2 бита). 3 - Неизвестно (время не синхронизировано).
-		iDeltaLen += 2;                      // увеличиваем позицию на длину поля.
-		szClientBuf[0] |= 0x4 << iDeltaLen;  // Номер версии (НВ) — текущее значение 4. (3 бита).
-		iDeltaLen += 3;                      // увеличиваем позицию на длину поля.
-		szClientBuf[0] |= 0x3 << iDeltaLen;  // Режим(3 бита). 3 - Клиент.
+	{ // write first byte
+		int iDeltaLen = 0;                   // current position of write
+		szClientBuf[0] |= 0x3;               // Leap Indicator (2 bits). 3 - Unknown (clock unsynchronized)
+		iDeltaLen += 2;                      // increase position by field length.
+		szClientBuf[0] |= 0x4 << iDeltaLen;  // Version Number — current version 4. (3 bits).
+		iDeltaLen += 3;                      // increase position by field length.
+		szClientBuf[0] |= 0x3 << iDeltaLen;  // Mode(3 bit). 3 - client.
 	}
 
-	SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);	//Создаем сокет
+	SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);	//create socket
 	if (sock == INVALID_SOCKET)
 	{
 		printf("Error socket: %d\r\n", WSAGetLastError());
@@ -94,22 +94,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	struct sockaddr_in dest_addr;
-	dest_addr.sin_family = AF_INET;															//Семейство протоколов: интернет
-	dest_addr.sin_port   = htons(123);													//Устанавливаем IP порт
-	dest_addr.sin_addr.s_addr=inet_addr("158.43.128.33");				//Заполняем адрес, куда отправляем сообщение
+	dest_addr.sin_family = AF_INET;															//Protocol family: Internet
+	dest_addr.sin_port   = htons(123);													//Setup IP port
+	dest_addr.sin_addr.s_addr=inet_addr("158.43.128.33");				//Adress to which the message will be send
 	//dest_addr.sin_addr.s_addr=inet_addr("132.163.96.1");
 	// time.windows.com: 
 	// time.nist.gov: 132.163.96.1
 	// time-nw.nist.gov: 
 
-	FILETIME ftmClSend, ftmClRecv;				//Время отправки и принятия клиентом сообщения
-	NtpTimePacket ntpTm_Receive;					//Время прибытия сообщения к серверу
-	NtpTimePacket ntpTm_Transmit;					//Время отрпавки сообщения от сервера
+	FILETIME ftmClSend, ftmClRecv;				//Time of send and recieve of message
+	NtpTimePacket ntpTm_Receive;					//Time of recieve to server
+	NtpTimePacket ntpTm_Transmit;					//Time of send to client
 
-	::GetSystemTimeAsFileTime(&ftmClSend); // время отправки пакета
+	::GetSystemTimeAsFileTime(&ftmClSend); // time of send to server
 
 	int iRes = 0;
-	iRes = sendto(sock, szClientBuf, sizeof(szClientBuf), 0, (sockaddr *) &dest_addr, sizeof(dest_addr));	//Отправка сообщение на сервер
+	iRes = sendto(sock, szClientBuf, sizeof(szClientBuf), 0, (sockaddr *) &dest_addr, sizeof(dest_addr));	//Send message on server
 	if (SOCKET_ERROR == iRes)
 	{
 		printf("Error sendto: %d\r\n", WSAGetLastError());
@@ -119,24 +119,24 @@ int _tmain(int argc, _TCHAR* argv[])
 	sockaddr_in serv_addr;
 	int iServAddrSize = sizeof(serv_addr);
 
-	iRes = recvfrom(sock, szServerBuf, sizeof(szServerBuf), 0, (sockaddr *) &serv_addr, &iServAddrSize);	//Принятие сообщения от сервера
+	iRes = recvfrom(sock, szServerBuf, sizeof(szServerBuf), 0, (sockaddr *) &serv_addr, &iServAddrSize);	//Recieve message form server
 	if (SOCKET_ERROR == iRes)
 	{
 		printf("Error recvfrom: %d\r\n", WSAGetLastError());
 		return 1;
 	}
 
-	::GetSystemTimeAsFileTime(&ftmClRecv); // время приема пакета
+	::GetSystemTimeAsFileTime(&ftmClRecv); // time of recieve from server to client
 
-	ntpTm_Receive.dwSecond   = htonl(*((DWORD*)(szServerBuf + 32)));//htonl - переводит байты из TCP/IP
-	ntpTm_Receive.dwFract    = htonl(*((DWORD*)(szServerBuf + 36)));// в Big-endian
+	ntpTm_Receive.dwSecond   = htonl(*((DWORD*)(szServerBuf + 32)));//htonl - convert bytes form TCP/IP
+	ntpTm_Receive.dwFract    = htonl(*((DWORD*)(szServerBuf + 36)));// in Big-endian
 
 	ntpTm_Transmit.dwSecond  = htonl(*((DWORD*)(szServerBuf + 40)));
 	ntpTm_Transmit.dwFract   = htonl(*((DWORD*)(szServerBuf + 44)));
 
 	SYSTEMTIME stmSend, stmRecv;
-	::FileTimeToSystemTime(&ftmClSend, &stmSend);	//Переводим время отправки от
-	::FileTimeToSystemTime(&ftmClRecv, &stmRecv);	// клиента/приема от сервера
+	::FileTimeToSystemTime(&ftmClSend, &stmSend);	//Convert time of send to server/recieve form server
+	::FileTimeToSystemTime(&ftmClRecv, &stmRecv);	// to system time
 
 
 	SYSTEMTIME stIn;
@@ -145,15 +145,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	ConvNtpToSystemTime(ntpTm_Transmit, stOut);
 
 	FILETIME ftmServIn, ftmServOut;
-	::SystemTimeToFileTime(&stIn,  &ftmServIn);	//Переводим время принятия сервера/
-	::SystemTimeToFileTime(&stOut, &ftmServOut);//отправки из сервера
+	::SystemTimeToFileTime(&stIn,  &ftmServIn);	//Convert time of recieve to server/send to client
+	::SystemTimeToFileTime(&stOut, &ftmServOut);//in system time
 
 	#define PrntT(prefix, ftm, t) { printf("%s:\t   (ftm (UTC): %08u.%08u), %I64u\r\n", prefix, ftm.dwHighDateTime, ftm.dwLowDateTime, t); }
 	#define MAKEUINT64(lo,hi) ((UINT64)(DWORD)(lo) | (UINT64)(DWORD)(hi) << 32)
 
-	INT64 t0 = MAKEUINT64(ftmClSend.dwLowDateTime,  ftmClSend.dwHighDateTime);	//Записваем количество 
-	INT64 t1 = MAKEUINT64(ftmServIn.dwLowDateTime,  ftmServIn.dwHighDateTime);	//милисекунд и секунд
-	INT64 t2 = MAKEUINT64(ftmServOut.dwLowDateTime, ftmServOut.dwHighDateTime);	// в одну переменную
+	INT64 t0 = MAKEUINT64(ftmClSend.dwLowDateTime,  ftmClSend.dwHighDateTime);	//Write the number of miliseconds and seconds into one variable
+	INT64 t1 = MAKEUINT64(ftmServIn.dwLowDateTime,  ftmServIn.dwHighDateTime);
+	INT64 t2 = MAKEUINT64(ftmServOut.dwLowDateTime, ftmServOut.dwHighDateTime);
 	INT64 t3 = MAKEUINT64(ftmClRecv.dwLowDateTime,  ftmClRecv.dwHighDateTime);
 
 	PrntT("t0", ftmClSend,  t0);
@@ -172,7 +172,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	//calculate offset of time
 	dLocalClockOffset = (double)((t1 - t0) + (t2 - t3)) / 2;
 
-	// переводим в миллисекунды
+	// convert to miliseconds
 	dRoundTripDelay /= 10000;
 	dLocalClockOffset /= 10000;
 
@@ -181,9 +181,9 @@ int _tmain(int argc, _TCHAR* argv[])
 		stm.wYear, stm.wMonth, stm.wDay, stm.wHour, stm.wMinute, stm.wSecond, stm.wMilliseconds, \
 		ftm.dwHighDateTime, ftm.dwLowDateTime); }
 
-	// дельта, которую надо прибавить к текущему времени
+	// delta, which must add to time in computer
 	printf("\r\nTime offset: %s %f ms \r\n", dLocalClockOffset < 0 ? "" : "+", dLocalClockOffset);
-	//Задержка на путь от клиента до сервера
+	//Round Trip Delay between server and client
 	printf("\r\nRound Trip Delay: %f ms \r\n", dRoundTripDelay);
 	printf("\n");
 
